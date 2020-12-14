@@ -2,12 +2,14 @@ import requests, re, json, time, logging, sys, schedule, argparse
 from itertools import count
 
 #Global Variable
-itemId = '0'
-shopId = '0'
-promotionId = '0'
-modelId = '0'
-price = '0'
-timestamp = 0
+product = {
+    'itemId':'0',
+    'shopId':'0',
+    'promotionId':'0',
+    'modelId':'0',
+    'price':'0',
+    'timestamp':0
+}
 
 #Set Logger
 logger = logging.getLogger('factory')
@@ -28,31 +30,24 @@ def printMsg(msg):
 def getInfo():
     printMsg("Ngambil informasi produk...")
 
-    global itemId
-    global shopId
-    global promotionId
-    global modelId
-    global price
-    global referrer
-
-    referrer = url
-
     #Get itemId and shopeId from url
     if '/product/' in url:
         param = re.search('/product/(.*)[?]', url).group(1).split('/')
-        itemId = param[1]
-        shopId = param[0]
+        product['itemId'] = param[1]
+        product['shopId'] = param[0]
     else:
         param = url.split('.')
-        itemId = param[-1]
-        shopId = param[-2]
+        product['itemId'] = param[-1]
+        product['shopId'] = param[-2]
+
+    test = product.items()
 
     #Set API url for product information
-    url_api = 'https://shopee.co.id/api/v2/item/get?itemid=' + itemId + '&shopid=' + shopId
+    url_api = 'https://shopee.co.id/api/v2/item/get?itemid=' + product['itemId'] + '&shopid=' + product['shopId']
     headers = { 
         'Host': 'shopee.co.id',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'Referer': referrer
+        'Referer': url
     }
 
     #Get product information
@@ -61,9 +56,10 @@ def getInfo():
 
     #Set Product Information
     try:
-        modelId = str(response['item']['models'][0]['modelid'])
-        price = str(response['item']['flash_sale']['price'])
-        promotionId = str(response['item']['flash_sale']['promotionid'])
+        product['modelId'] = str(response['item']['models'][0]['modelid'])
+        product['price'] = str(response['item']['flash_sale']['price'])
+        product['promotionId'] = str(response['item']['flash_sale']['promotionid'])
+        printMsg(response['item']['name'])
     except:
         pass
     
@@ -74,18 +70,17 @@ def addToCart():
     printMsg("Nambahin ke keranjang dulu cuy..")
 
     #Set Current Time
-    global timestamp
-    timestamp = int(time.time())
+    product['timestamp'] = int(time.time())
 
     #Set API for adding to cart
     api = 'https://shopee.co.id/api/v2/cart/add_to_cart'
     headers = { 
-        'x-csrftoken': 'VJfuneWDQRzrU3QFgUvijbErFRHku6M9',
-        'referer': referrer,
+        'x-csrftoken': token,
+        'referer': url,
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
         'cookie': cookie
     }
-    data = '{"quantity":1,"checkout":true,"update_checkout_only":false,"donot_add_quantity":false,"source":"{\\"refer_urls\\":[]}","client_source":1,"shopid":' + shopId + ',"itemid":' + itemId + ',"modelid":' + modelId + '}'
+    data = '{"quantity":1,"checkout":true,"update_checkout_only":false,"donot_add_quantity":false,"source":"{\\"refer_urls\\":[]}","client_source":1,"shopid":' + product['shopId'] + ',"itemid":' + product['itemId'] + ',"modelid":' + product['modelId'] + '}'
     payload = json.loads(data)
     logger.info(data)
 
@@ -105,11 +100,11 @@ def checkout():
         'origin': 'https://shopee.co.id',
         'content-type': 'application/json',
         'referer': 'https://shopee.co.id/cart/',
-        'x-csrftoken': 'VJfuneWDQRzrU3QFgUvijbErFRHku6M9',
+        'x-csrftoken': token,
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
         'cookie': cookie
     }
-    data = '{"selected_shop_order_ids":[{"shopid":' + shopId + ',"item_briefs":[{"itemid":' + itemId + ',"modelid":' + modelId + ',"item_group_id":null,"applied_promotion_id":' + promotionId + ',"offerid":null,"price":' + price + ',"quantity":1,"is_add_on_sub_item":null,"add_on_deal_id":null,"status":1,"cart_item_change_time":' + str(timestamp) + '}],"shop_vouchers":[]}],"platform_vouchers":[]}'
+    data = '{"selected_shop_order_ids":[{"shopid":' + product['shopId'] + ',"item_briefs":[{"itemid":' + product['itemId'] + ',"modelid":' + product['modelId'] + ',"item_group_id":null,"applied_promotion_id":' + product['promotionId'] + ',"offerid":null,"price":' + product['price'] + ',"quantity":1,"is_add_on_sub_item":null,"add_on_deal_id":null,"status":1,"cart_item_change_time":' + str(product['timestamp']) + '}],"shop_vouchers":[]}],"platform_vouchers":[]}'
     payload = json.loads(data)
     logger.info(data)
 
@@ -119,7 +114,7 @@ def checkout():
 
     return response
 
-#Run scheduler
+#Run the program with scheduler
 def runScheduler(hour):
     #Set Scheduler
     schedule.every().day.at(hour).do(lambda: run())
@@ -139,23 +134,27 @@ def run():
             if checkout():
                 printMsg("Anjay! checkout berhasil coy")
 
-#Set arguments
+#Set arguments parser
 parser = argparse.ArgumentParser(description='Shopee Flashsale Sniper')
 
 parser.add_argument('-url', required=True, type=str, help='URL produk flashsale nya bre')
 parser.add_argument('-cookie', required=True, type=str, help='Cookie session nya anjir')
+parser.add_argument('-token', required=True, type=str, help='Token nya janglup')
 parser.add_argument('--time', type=str, help='Jam piro kalo mau otomatis. Format=JAM:MENIT. Contoh=23:30')
 
 args = parser.parse_args()
 
 #Check if argument exist
-if not (args.url or args.cookie):
+if not (args.url or args.cookie or args.token):
     parser.print_help()
     sys.exit()
 
-cookie = args.cookie
+#Set arguments
 url = args.url
+token = args.token
+cookie = args.cookie
 
+#Execute
 if args.time is not None:
     runScheduler(args.time)
 else: 
