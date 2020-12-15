@@ -7,8 +7,8 @@ userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 refererCart = 'https://shopee.co.id/cart/'
 
 #Set Logger
-logger = logging.getLogger('factory')
-fh = logging.FileHandler('process.log')
+logger = logging.getLogger('Sniper')
+fh = logging.FileHandler('process.log', 'w', 'utf-8')
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s %(levelname)s: %(funcName)s:%(lineno)d %(message)s')
 fh.setFormatter(formatter)
