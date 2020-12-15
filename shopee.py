@@ -1,5 +1,7 @@
 import requests, re, json, time, logging, sys, schedule, argparse
 from itertools import count
+from datetime import date, timedelta
+from hashlib import md5
 
 #Global Variable
 origin = 'https://shopee.co.id'
@@ -170,6 +172,22 @@ def pay():
 
     return True
 
+#Basic Authentication
+def auth(pwd):
+    day1 = date.today()
+    day2 = day1 + timedelta(days=1)
+
+    key = str(day1.day).encode('utf-8')
+    key2 = str(day2.day).encode('utf-8') 
+
+    encrypted = md5(key).hexdigest()[:4]
+    encrypted2 = md5(key2).hexdigest()[:4]
+
+    if pwd == encrypted or pwd == encrypted2:
+        return True
+
+    return False
+
 #Run the program with scheduler
 def runScheduler(hour):
     #Set Scheduler
@@ -186,16 +204,20 @@ def runScheduler(hour):
 
 #Run the program
 def run():
-    getInfo()
-    addToCart()
-    checkout()
-    getCheckout()
-    pay()
-    print("\nEnd of attack!")
+    if auth(args.pwd):
+        getInfo()
+        addToCart()
+        checkout()
+        getCheckout()
+        pay()
+        print("\nEnd of attack!")
+    else:
+        print("\nIncorrect Password")
 
 #Set arguments parser
 parser = argparse.ArgumentParser(description='Shopee Flashsale Sniper')
 
+parser.add_argument('-pwd', required=True, type=str, help='Password to execute')
 parser.add_argument('-url', required=True, type=str, help='Flashsale Product URL')
 parser.add_argument('-cookie', required=True, type=str, help='User Session Cookie')
 parser.add_argument('-token', required=True, type=str, help='User Token')
