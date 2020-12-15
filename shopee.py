@@ -1,6 +1,11 @@
 import requests, re, json, time, logging, sys, schedule, argparse
 from itertools import count
 
+#Global Variable
+origin = 'https://shopee.co.id'
+userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
+refererCart = 'https://shopee.co.id/cart/'
+
 #Set Logger
 logger = logging.getLogger('factory')
 fh = logging.FileHandler('process.log')
@@ -31,9 +36,8 @@ def getInfo():
     #Set API url for product information
     url_api = 'https://shopee.co.id/api/v2/item/get?itemid=' + product['itemId'] + '&shopid=' + product['shopId']
     headers = { 
-        'Host': 'shopee.co.id',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'Referer': url
+        'Referer': url,
+        'user-agent': userAgent
     }
 
     #Get product information
@@ -61,10 +65,10 @@ def addToCart():
     #Set API for adding to cart
     api = 'https://shopee.co.id/api/v2/cart/add_to_cart'
     headers = { 
-        'x-csrftoken': token,
         'referer': url,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'cookie': cookie
+        'cookie': cookie,
+        'x-csrftoken': token,
+        'user-agent': userAgent
     }
     data = '{"quantity":1,"checkout":true,"update_checkout_only":false,"donot_add_quantity":false,"source":"{\\"refer_urls\\":[]}","client_source":1,"shopid":' + product['shopId'] + ',"itemid":' + product['itemId'] + ',"modelid":' + product['modelId'] + '}'
     payload = json.loads(data)
@@ -84,12 +88,12 @@ def checkout():
     #Set API item checkout
     api = 'https://shopee.co.id/api/v4/cart/checkout'
     headers = { 
-        'origin': 'https://shopee.co.id',
-        'content-type': 'application/json',
-        'referer': 'https://shopee.co.id/cart/',
+        'origin': origin,
+        'cookie': cookie,
         'x-csrftoken': token,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'cookie': cookie
+        'referer': refererCart,
+        'user-agent': userAgent,
+        'content-type': 'application/json'
     }
     data = '{"selected_shop_order_ids":[{"shopid":' + product['shopId'] + ',"item_briefs":[{"itemid":' + product['itemId'] + ',"modelid":' + product['modelId'] + ',"item_group_id":null,"applied_promotion_id":' + product['promotionId'] + ',"offerid":null,"price":' + product['price'] + ',"quantity":1,"is_add_on_sub_item":null,"add_on_deal_id":null,"status":1,"cart_item_change_time":' + str(product['timestamp']) + '}],"shop_vouchers":[]}],"platform_vouchers":[]}'
     payload = json.loads(data)
@@ -108,12 +112,12 @@ def getCheckout():
     #Set API item checkout
     api = 'https://shopee.co.id/api/v2/checkout/get'
     headers = { 
-        'origin': 'https://shopee.co.id',
-        'content-type': 'application/json',
-        'referer': 'https://shopee.co.id/cart/',
+        'origin': origin,
+        'cookie': cookie,
         'x-csrftoken': token,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'cookie': cookie
+        'referer': refererCart,
+        'user-agent': userAgent,
+        'content-type': 'application/json',
     }
     data = '{"shoporders":[{"shop":{"shopid":' + product['shopId'] + '},"items":[{"itemid":' + product['itemId'] + ',"modelid":' + product['modelId'] + ',"add_on_deal_id":null,"is_add_on_sub_item":null,"item_group_id":null,"quantity":1}],"logistics":{"recommended_channelids":null},"buyer_address_data":{},"selected_preferred_delivery_time_slot_id":null}],"selected_payment_channel_data":{},"promotion_data":{"use_coins":false,"free_shipping_voucher_info":{"free_shipping_voucher_id":0,"disabled_reason":"","description":""},"platform_vouchers":[],"shop_vouchers":[],"check_shop_voucher_entrances":true,"auto_apply_shop_voucher":false},"device_info":{"device_id":"","device_fingerprint":"","tongdun_blackbox":"","buyer_payment_info":{}},"tax_info":{"tax_id":""}}'
     payload = json.loads(data)
@@ -135,12 +139,12 @@ def pay():
     #Set API payment
     api = 'https://shopee.co.id/api/v2/checkout/place_order'
     headers = {
-        'origin': 'https://shopee.co.id',
-        'content-type': 'application/json',
-        'referer': 'https://shopee.co.id/checkout/',
+        'origin': origin,
+        'cookie': cookie,
         'x-csrftoken': token,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-        'cookie': cookie
+        'user-agent': userAgent,
+        'content-type': 'application/json',
+        'referer': 'https://shopee.co.id/checkout/'
     }
 
     data = checkoutData
