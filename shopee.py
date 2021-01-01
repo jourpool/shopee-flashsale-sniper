@@ -19,7 +19,21 @@ logger.addHandler(fh)
 logger.setLevel(logging.DEBUG)
 
 #Get Product Information
-def getInfo():
+def getInfo(itemId, shopId, price, modelId, promotionId):
+    print("\nInitializing Attack..")
+
+    global product
+    product = {}
+    product['itemId'] = itemId
+    product['shopId'] = shopId
+    product['price'] = price
+    product['modelId'] = modelId
+    product['promotionId'] = promotionId
+    
+    return True
+
+#Get Product Information without data provided
+def getInfoWithoutData():
     print("\nInitializing Attack..")
 
     global product
@@ -131,7 +145,7 @@ def getCheckout():
 
     #Set gathered checkout information
     global checkoutData
-    checkoutData = response
+    checkoutData = json.loads(json.dumps(response))
 
     return True
 
@@ -151,14 +165,18 @@ def pay():
 
     data = checkoutData
 
-    data.pop('payment_channel_info', None)
-    data['shoporders'][0].pop('logistics', None)
-    data['shipping_orders'][0].pop('logistics', None)
-
-    data['shoporders'][0]['buyer_ic_number'] = ''
-    data['shipping_orders'][0]['buyer_ic_number'] = ''
-    
-    data['shoporders'][0]['ext_ad_info_mappings'] = []
+    try: 
+        data['shoporders'][0]['buyer_ic_number'] = ''
+    except:
+        pass
+    try:
+        data['shipping_orders'][0]['buyer_ic_number'] = ''
+    except:
+        pass
+    try:
+        data['shoporders'][0]['ext_ad_info_mappings'] = []
+    except:
+        pass
 
     data['status'] = 200
     data['headers'] = {}
@@ -204,15 +222,15 @@ def runScheduler(hour):
 
 #Run the program
 def run():
-    if auth(args.pwd):
-        getInfo()
+        if not (args.itemid or args.shopid or args.price or args.modelid or args.promotionid):
+            getInfoWithoutData()
+        else:
+            getInfo(args.itemid, args.shopid, args.price, args.modelid, args.promotionid)
         addToCart()
         checkout()
         getCheckout()
         pay()
         print("\nEnd of attack!")
-    else:
-        print("\nIncorrect Password")
 
 #Set arguments parser
 parser = argparse.ArgumentParser(description='Shopee Flashsale Sniper')
@@ -222,6 +240,12 @@ parser.add_argument('-url', required=True, type=str, help='Flashsale Product URL
 parser.add_argument('-cookie', required=True, type=str, help='User Session Cookie')
 parser.add_argument('-token', required=True, type=str, help='User Token')
 parser.add_argument('--time', type=str, help='Time of Attack. Format=HH:MM. Example=23:30')
+
+parser.add_argument('--itemid', type=str, help='itemId of the product.')
+parser.add_argument('--shopid', type=str, help='shopId of the product.')
+parser.add_argument('--price', type=str, help='Discounted price of the product.')
+parser.add_argument('--modelid', type=str, help='modelId of the product variant.')
+parser.add_argument('--promotionid', type=str, help='promotionId of the flash sale.')
 
 args = parser.parse_args()
 
@@ -236,7 +260,10 @@ token = args.token
 cookie = args.cookie
 
 #Execute
-if args.time is not None:
-    runScheduler(args.time)
-else: 
-    run()
+if auth(args.pwd):
+    if args.time is not None:
+        runScheduler(args.time)
+    else: 
+        run()
+else:
+    print("\nIncorrect Password")
